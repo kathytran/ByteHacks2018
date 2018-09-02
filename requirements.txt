@@ -1,0 +1,15 @@
+google_api_python_client==1.6.4
+argparse==1.4.0
+datetime==4.2
+pandas==0.20.3
+numpy==1.13.3
+sk-video==1.1.8
+opencv-python==3.3.0.10
+Pillow==2.7.0
+ffmpy==0.2.2
+ffmpeg-python==0.1.9
+google-api-python-client==1.6.4
+google-cloud-vision==0.29.0
+google-cloud-videointelligence==1.0.0
+google-cloud-storage==1.6.0
+wikipedia==1.4.0
