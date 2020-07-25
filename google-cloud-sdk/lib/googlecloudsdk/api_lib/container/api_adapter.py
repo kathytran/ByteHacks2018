@@ -54,8 +54,8 @@ Please specify one of the following node pools:
 """
 
 MISMATCH_AUTHORIZED_NETWORKS_ERROR_MSG = """\
-Cannot use --master-authorized-networks \
-if --enable-master-authorized-networks is not \
+Cannot use --main-authorized-networks \
+if --enable-main-authorized-networks is not \
 specified."""
 
 NO_AUTOPROVISIONING_MSG = """\
@@ -341,8 +341,8 @@ class CreateClusterOptions(object):
                enable_autorepair=None,
                enable_autoupgrade=None,
                service_account=None,
-               enable_master_authorized_networks=None,
-               master_authorized_networks=None,
+               enable_main_authorized_networks=None,
+               main_authorized_networks=None,
                enable_legacy_authorization=None,
                labels=None,
                disk_type=None,
@@ -362,7 +362,7 @@ class CreateClusterOptions(object):
                private_cluster=None,
                enable_private_nodes=None,
                enable_private_endpoint=None,
-               master_ipv4_cidr=None,
+               main_ipv4_cidr=None,
                tpu_ipv4_cidr=None,
                enable_tpu=None,
                default_max_pods_per_node=None,
@@ -410,8 +410,8 @@ class CreateClusterOptions(object):
     self.enable_autorepair = enable_autorepair
     self.enable_autoupgrade = enable_autoupgrade
     self.service_account = service_account
-    self.enable_master_authorized_networks = enable_master_authorized_networks
-    self.master_authorized_networks = master_authorized_networks
+    self.enable_main_authorized_networks = enable_main_authorized_networks
+    self.main_authorized_networks = main_authorized_networks
     self.enable_legacy_authorization = enable_legacy_authorization
     self.enable_network_policy = enable_network_policy
     self.labels = labels
@@ -431,7 +431,7 @@ class CreateClusterOptions(object):
     self.private_cluster = private_cluster
     self.enable_private_nodes = enable_private_nodes
     self.enable_private_endpoint = enable_private_endpoint
-    self.master_ipv4_cidr = master_ipv4_cidr
+    self.main_ipv4_cidr = main_ipv4_cidr
     self.tpu_ipv4_cidr = tpu_ipv4_cidr
     self.enable_tpu = enable_tpu
     self.issue_client_certificate = issue_client_certificate
@@ -448,7 +448,7 @@ class UpdateClusterOptions(object):
 
   def __init__(self,
                version=None,
-               update_master=None,
+               update_main=None,
                update_nodes=None,
                node_pool=None,
                monitoring_service=None,
@@ -461,8 +461,8 @@ class UpdateClusterOptions(object):
                image=None,
                image_project=None,
                locations=None,
-               enable_master_authorized_networks=None,
-               master_authorized_networks=None,
+               enable_main_authorized_networks=None,
+               main_authorized_networks=None,
                enable_autoprovisioning=None,
                enable_pod_security_policy=None,
                enable_binauthz=None,
@@ -471,7 +471,7 @@ class UpdateClusterOptions(object):
                security_profile=None,
                security_profile_runtime_rules=None):
     self.version = version
-    self.update_master = bool(update_master)
+    self.update_main = bool(update_main)
     self.update_nodes = bool(update_nodes)
     self.node_pool = node_pool
     self.monitoring_service = monitoring_service
@@ -484,8 +484,8 @@ class UpdateClusterOptions(object):
     self.image = image
     self.image_project = image_project
     self.locations = locations
-    self.enable_master_authorized_networks = enable_master_authorized_networks
-    self.master_authorized_networks = master_authorized_networks
+    self.enable_main_authorized_networks = enable_main_authorized_networks
+    self.main_authorized_networks = main_authorized_networks
     self.enable_autoprovisioning = enable_autoprovisioning
     self.enable_pod_security_policy = enable_pod_security_policy
     self.enable_binauthz = enable_binauthz
@@ -495,8 +495,8 @@ class UpdateClusterOptions(object):
     self.security_profile_runtime_rules = security_profile_runtime_rules
 
 
-class SetMasterAuthOptions(object):
-  """Options to pass to SetMasterAuth."""
+class SetMainAuthOptions(object):
+  """Options to pass to SetMainAuth."""
 
   SET_PASSWORD = 'SetPassword'
   GENERATE_PASSWORD = 'GeneratePassword'
@@ -785,7 +785,7 @@ class APIAdapter(object):
     cluster = self.messages.Cluster(
         name=cluster_ref.clusterId,
         nodePools=pools,
-        masterAuth=self.messages.MasterAuth(username=options.user,
+        mainAuth=self.messages.MainAuth(username=options.user,
                                             password=options.password))
     if options.additional_zones:
       cluster.locations = sorted([cluster_ref.zone] + options.additional_zones)
@@ -812,7 +812,7 @@ class APIAdapter(object):
               NETWORK_POLICY not in options.addons))
       cluster.addonsConfig = addons
 
-    self.ParseMasterAuthorizedNetworkOptions(options, cluster)
+    self.ParseMainAuthorizedNetworkOptions(options, cluster)
 
     if options.enable_kubernetes_alpha:
       cluster.enableKubernetesAlpha = options.enable_kubernetes_alpha
@@ -851,7 +851,7 @@ class APIAdapter(object):
           enabled=options.enable_pod_security_policy)
 
     if options.issue_client_certificate is not None:
-      cluster.masterAuth.clientCertificateConfig = (
+      cluster.mainAuth.clientCertificateConfig = (
           self.messages.ClientCertificateConfig(
               issueClientCertificate=options.issue_client_certificate))
 
@@ -1067,16 +1067,16 @@ class APIAdapter(object):
               prerequisite='enable-private-nodes',
               opt='enable-private-endpoint'))
 
-    if options.master_ipv4_cidr and not options.enable_private_nodes:
+    if options.main_ipv4_cidr and not options.enable_private_nodes:
       raise util.Error(
           PREREQUISITE_OPTION_ERROR_MSG.format(
-              prerequisite='enable-private-nodes', opt='master-ipv4-cidr'))
+              prerequisite='enable-private-nodes', opt='main-ipv4-cidr'))
 
     if options.enable_private_nodes:
       config = self.messages.PrivateClusterConfig(
           enablePrivateNodes=options.enable_private_nodes,
           enablePrivateEndpoint=options.enable_private_endpoint,
-          masterIpv4CidrBlock=options.master_ipv4_cidr)
+          mainIpv4CidrBlock=options.main_ipv4_cidr)
       cluster.privateClusterConfig = config
     return cluster
 
@@ -1097,19 +1097,19 @@ class APIAdapter(object):
     if options.enable_tpu:
       cluster.enableTpu = options.enable_tpu
 
-  def ParseMasterAuthorizedNetworkOptions(self, options, cluster):
-    """Parses the options for master authorized networks."""
-    if options.enable_master_authorized_networks:
-      authorized_networks = self.messages.MasterAuthorizedNetworksConfig(
-          enabled=options.enable_master_authorized_networks)
-      if options.master_authorized_networks:
-        for network in options.master_authorized_networks:
+  def ParseMainAuthorizedNetworkOptions(self, options, cluster):
+    """Parses the options for main authorized networks."""
+    if options.enable_main_authorized_networks:
+      authorized_networks = self.messages.MainAuthorizedNetworksConfig(
+          enabled=options.enable_main_authorized_networks)
+      if options.main_authorized_networks:
+        for network in options.main_authorized_networks:
           authorized_networks.cidrBlocks.append(self.messages.CidrBlock(
               cidrBlock=network))
-      cluster.masterAuthorizedNetworksConfig = authorized_networks
-    elif options.master_authorized_networks:
-      # Raise error if use --master-authorized-networks without
-      # --enable-master-authorized-networks.
+      cluster.mainAuthorizedNetworksConfig = authorized_networks
+    elif options.main_authorized_networks:
+      # Raise error if use --main-authorized-networks without
+      # --enable-main-authorized-networks.
       raise util.Error(MISMATCH_AUTHORIZED_NETWORKS_ERROR_MSG)
 
   def CreateCluster(self, cluster_ref, options):
@@ -1139,9 +1139,9 @@ class APIAdapter(object):
       if options.security_profile is not None:
         update.securityProfile = self.messages.SecurityProfile(
             name=options.security_profile)
-    elif options.update_master:
+    elif options.update_main:
       update = self.messages.ClusterUpdate(
-          desiredMasterVersion=options.version)
+          desiredMainVersion=options.version)
       # security_profile may be set in upgrade command
       if options.security_profile is not None:
         update.securityProfile = self.messages.SecurityProfile(
@@ -1171,16 +1171,16 @@ class APIAdapter(object):
           desiredNodePoolAutoscaling=autoscaling)
     elif options.locations:
       update = self.messages.ClusterUpdate(desiredLocations=options.locations)
-    elif options.enable_master_authorized_networks is not None:
+    elif options.enable_main_authorized_networks is not None:
       # For update, we can either enable or disable.
-      authorized_networks = self.messages.MasterAuthorizedNetworksConfig(
-          enabled=options.enable_master_authorized_networks)
-      if options.master_authorized_networks:
-        for network in options.master_authorized_networks:
+      authorized_networks = self.messages.MainAuthorizedNetworksConfig(
+          enabled=options.enable_main_authorized_networks)
+      if options.main_authorized_networks:
+        for network in options.main_authorized_networks:
           authorized_networks.cidrBlocks.append(self.messages.CidrBlock(
               cidrBlock=network))
       update = self.messages.ClusterUpdate(
-          desiredMasterAuthorizedNetworksConfig=authorized_networks)
+          desiredMainAuthorizedNetworksConfig=authorized_networks)
     elif options.enable_autoprovisioning is not None:
       autoscaling = self.CreateClusterAutoscalingCommon(options)
       update = self.messages.ClusterUpdate(
@@ -1231,10 +1231,10 @@ class APIAdapter(object):
         and options.security_profile_runtime_rules is not None):
       update.securityProfile.disableRuntimeRules = \
           not options.security_profile_runtime_rules
-    if (options.master_authorized_networks
-        and not options.enable_master_authorized_networks):
-      # Raise error if use --master-authorized-networks without
-      # --enable-master-authorized-networks.
+    if (options.main_authorized_networks
+        and not options.enable_main_authorized_networks):
+      # Raise error if use --main-authorized-networks without
+      # --enable-main-authorized-networks.
       raise util.Error(MISMATCH_AUTHORIZED_NETWORKS_ERROR_MSG)
     return update
 
@@ -1365,29 +1365,29 @@ class APIAdapter(object):
         self.client.projects_locations_clusters.SetNetworkPolicy(req).name,
         cluster_ref.zone)
 
-  def SetMasterAuthCommon(self, options):
-    """Returns a SetMasterAuth action."""
-    update = self.messages.MasterAuth(
+  def SetMainAuthCommon(self, options):
+    """Returns a SetMainAuth action."""
+    update = self.messages.MainAuth(
         username=options.username, password=options.password)
-    if options.action == SetMasterAuthOptions.SET_PASSWORD:
-      action = (self.messages.SetMasterAuthRequest.
+    if options.action == SetMainAuthOptions.SET_PASSWORD:
+      action = (self.messages.SetMainAuthRequest.
                 ActionValueValuesEnum.SET_PASSWORD)
-    elif options.action == SetMasterAuthOptions.GENERATE_PASSWORD:
-      action = (self.messages.SetMasterAuthRequest.
+    elif options.action == SetMainAuthOptions.GENERATE_PASSWORD:
+      action = (self.messages.SetMainAuthRequest.
                 ActionValueValuesEnum.GENERATE_PASSWORD)
-    else:  # options.action == SetMasterAuthOptions.SET_USERNAME
+    else:  # options.action == SetMainAuthOptions.SET_USERNAME
       action = (
-          self.messages.SetMasterAuthRequest.ActionValueValuesEnum.SET_USERNAME)
+          self.messages.SetMainAuthRequest.ActionValueValuesEnum.SET_USERNAME)
     return update, action
 
-  def SetMasterAuth(self, cluster_ref, options):
-    update, action = self.SetMasterAuthCommon(options)
-    req = self.messages.SetMasterAuthRequest(
+  def SetMainAuth(self, cluster_ref, options):
+    update, action = self.SetMainAuthCommon(options)
+    req = self.messages.SetMainAuthRequest(
         name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
                                     cluster_ref.clusterId),
         action=action,
         update=update)
-    op = self.client.projects_locations_clusters.SetMasterAuth(req)
+    op = self.client.projects_locations_clusters.SetMainAuth(req)
     return self.ParseOperation(op.name, cluster_ref.zone)
 
   def StartIpRotation(self, cluster_ref, rotate_credentials):
